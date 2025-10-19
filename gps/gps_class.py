@@ -1,10 +1,10 @@
 class GPS_Data:
-    def __init__(self):
-        self._latitude: float
-        self._longitude: float
-        self._altitude: float
-        self._accuracy: float
-        self._speed: float
+    def __init__(self, latitude: float = None, longitude: float = None, altitude: float = None, accuracy: float = None, speed: float = None):
+        self._latitude: float = latitude
+        self._longitude: float = longitude
+        self._altitude: float = altitude
+        self._accuracy: float = accuracy
+        self._speed: float = speed
 
     def Set(self, latitude: float = None, longitude: float = None, altitude: float = None, accuracy: float = None, speed: float = None):
         self._latitude = float(f"{latitude}.:5f")
