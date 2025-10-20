@@ -21,3 +21,4 @@ class GPS_Data:
             "Accuracy": self._accuracy,
             "Speed": self._speed
             }
+        return package

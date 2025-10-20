@@ -1,18 +1,9 @@
 from camera.current_feed import start_live_feed
-from gps.gps_class import GPS_Data
+from init_test_data import test_data
 
 def main():
-    gps = GPS_Data(
-    latitude=43.4931,
-    longitude=-112.0401,
-    altitude=1440.5,
-    accuracy=3.2,
-    speed=1.6
-    )
-
-    print("GPS:", gps.Get())
-
-    start_live_feed()
+    gps, compass = test_data()
+    start_live_feed(gps, compass)
 
 if __name__ == "__main__":
     main()

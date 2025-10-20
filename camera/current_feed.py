@@ -2,8 +2,11 @@ import cv2
 import time
 
 from configuration.display_settings import apply_settings
+from gps.gps_class import GPS_Data
+from compass.compass_class import Compass_Data
+from compass.display_compass import show_compass
 
-def start_live_feed():
+def start_live_feed(gps: GPS_Data, compass: Compass_Data):
     start_time = time.time()
     frame_count = 0
     fps = None
@@ -15,6 +18,10 @@ def start_live_feed():
             break
         if fps != None:
             apply_settings(frame, fps, show_fps=True)
+
+        heading = (time.time() * 30) % 360
+        compass.Set(heading = heading)
+        show_compass()
 
         cv2.imshow("Live Feed", frame)
         frame_count += 1
