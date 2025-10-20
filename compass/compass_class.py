@@ -1,5 +1,7 @@
 import cv2
 
+from configuration.settings.colors import LIMA
+
 class Compass:
     def __init__(self, heading: float = None, pitch: float = None, roll: float = None):
         self.heading: float = heading
@@ -24,7 +26,6 @@ class Compass:
         return self.heading
     
     def draw_cardinal_direction(self, frame, world_angle, tick):
-        LIMA = (85, 191, 36)
         if world_angle == 0:
             label = "N"
         elif world_angle == 90:
@@ -41,7 +42,6 @@ class Compass:
 
 
     def display_compass(self, frame):
-        LIMA = (85, 191, 36)
         # Compass baground
         overlay = frame.copy()
         height, width, channels = frame.shape
