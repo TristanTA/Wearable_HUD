@@ -6,10 +6,11 @@ class Camera:
         self.start_time = time.time()
         self.frame_count = 0
         self.fps = 0
-        self.frame = None
+        self.lens_frame = None
+        self.hud_frame = None
 
     def update(self):
-        ret, self.frame = self.cap.read()
+        ret, self.lens_frame = self.cap.read()
         if not ret:
             return False
         self.frame_count += 1
@@ -18,7 +19,7 @@ class Camera:
         return True
 
     def get(self):
-        return self.frame, self.fps
+        return self.hud_frame, self.fps
 
     def release(self):
         self.cap.release()

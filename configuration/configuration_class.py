@@ -14,8 +14,8 @@ class Configuration:
 
     def display_configuration(self):
         if self.show_fps:
-            display_fps(frame=self.camera.frame, fps=self.camera.fps)
+            display_fps(frame=self.camera.hud_frame, fps=self.camera.fps)
         if self.gps:
-            self.gps.display_gps(frame=self.camera.frame)
+            self.gps.display_gps(frame=self.camera.hud_frame)
         if self.compass:
-            self.compass.display_compass(frame=self.camera.frame)
+            self.compass.display_compass(frame=self.camera.hud_frame)
