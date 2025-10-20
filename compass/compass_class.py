@@ -17,3 +17,6 @@ class Compass_Data:
                    "Pitch": self._pitch,
                    "Roll": self._roll}
         return package
+
+    def GetHeading(self):
+        return self._heading

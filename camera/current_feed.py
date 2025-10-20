@@ -21,7 +21,7 @@ def start_live_feed(gps: GPS_Data, compass: Compass_Data):
 
         heading = (time.time() * 30) % 360
         compass.Set(heading = heading)
-        show_compass()
+        show_compass(frame, compass.GetHeading())
 
         cv2.imshow("Live Feed", frame)
         frame_count += 1
