@@ -2,98 +2,116 @@ import torch
 import torch.nn as nn
 import pandas as pd
 import numpy as np
+import ast
+from sklearn.model_selection import train_test_split
 
+# ------------------------
+# Neural Net Definition
+# ------------------------
 class EMG_NN(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(input_size, hidden_size),
             nn.ReLU(),
-            nn.Linear(hidden_size, output_size)
+            nn.Linear(hidden_size, output_size),
+            nn.Sigmoid()  # for binary-like output
         )
 
     def forward(self, x):
         return self.net(x)
 
-data = pd.read_csv("emg_test_data.csv")
-X = data[["ref_voltage","ch1","ch2","ch3","contact_quality","noise_level","typing","key_count"]]
-y = data[["mouse_dx","mouse_dy","mouse_speed","button1","button2","scroll_press","scroll_up","scroll_down","window_focus"]]
+# ------------------------
+# Data Loading & Cleaning
+# ------------------------
+df = pd.read_csv("emg_test_data.csv")
+data = df.copy().fillna(0)
 
-X = torch.tensor(X.values, dtype=torch.float32)
-y = torch.tensor(y.values, dtype=torch.float32)
+for col in data.columns:
+    if data[col].dropna().isin([True, False]).all():
+        data[col] = data[col].astype(int)
+        continue
+    first_val = str(data[col].dropna().iloc[0]) if not data[col].dropna().empty else None
+    if first_val:
+        if first_val.startswith("[") or "," in first_val:
+            try:
+                data[col] = data[col].apply(
+                    lambda x: len(ast.literal_eval(x)) if isinstance(x, str) and x.startswith("[") else (
+                        len(x.split(",")) if isinstance(x, str) and "," in x else 0
+                    )
+                )
+                continue
+            except Exception:
+                pass
+    if data[col].dtype == object:
+        data[col] = data[col].astype("category").cat.codes
 
+data = data.apply(pd.to_numeric, errors="coerce").fillna(0)
+
+# ------------------------
+# Feature / Target split
+# ------------------------
+X = data[["timestamp","mouse_x","mouse_y","mouse_velocity","scroll_velocity","mouse1","mouse2","mouse3","pressed_keys"]]
+y = data[["ref_voltage","ch1_voltage","ch2_voltage","ch3_voltage"]]
+
+# Binarize outputs (since we want classification metrics)
+y = (y > y.median()).astype(int)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+X_train = torch.tensor(X_train.values, dtype=torch.float32)
+y_train = torch.tensor(y_train.values, dtype=torch.float32)
+X_test = torch.tensor(X_test.values, dtype=torch.float32)
+y_test = torch.tensor(y_test.values, dtype=torch.float32)
+
+# ------------------------
+# Model Setup
+# ------------------------
 emg_model = EMG_NN(input_size=X.shape[1], hidden_size=64, output_size=y.shape[1])
-criterion = nn.MSELoss()
+criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(emg_model.parameters(), lr=0.001)
 
-epoch_losses = []
-epoch_grad_norms = []
-EPOCHS = 300000
+# ------------------------
+# Training Loop
+# ------------------------
+EPOCHS = 1000
 for epoch in range(EPOCHS):
-    outputs = emg_model(X)
-    loss = criterion(outputs, y)
+    outputs = emg_model(X_train)
+    loss = criterion(outputs, y_train)
+
     optimizer.zero_grad()
     loss.backward()
-    grad_norm = 0.0
-    for p in emg_model.parameters():
-        if p.grad is not None:
-            grad_norm += p.grad.data.norm(2).item() ** 2
-    grad_norm = grad_norm ** 0.5
     optimizer.step()
 
-    epoch_losses.append(loss.item())
-    epoch_grad_norms.append(grad_norm)
+    if (epoch + 1) % 100 == 0:
+        print(f"Epoch {epoch+1}/{EPOCHS} | Loss: {loss.item():.6f}")
 
-    # --- Epoch analytics ---
-    if (epoch + 1) % 10 == 0 or epoch == 0:
-        change = 0 if len(epoch_losses) < 2 else epoch_losses[-2] - epoch_losses[-1]
-        print(f"Epoch {epoch+1:03d}/{EPOCHS} | "
-              f"Loss: {loss.item():.6f} | "
-              f"ΔLoss: {change:+.6f} | "
-              f"GradNorm: {grad_norm:.3f}")
-
-# ---- Final analysis ----
-final_loss = epoch_losses[-1]
-best_loss = min(epoch_losses)
-best_epoch = np.argmin(epoch_losses) + 1
-avg_grad = np.mean(epoch_grad_norms)
-grad_stability = np.std(epoch_grad_norms)
-
-print("\n=== FINAL TRAINING ANALYSIS ===")
-print(f"Total Epochs:       {EPOCHS}")
-print(f"Final Loss:         {final_loss:.6f}")
-print(f"Best Loss:          {best_loss:.6f} (Epoch {best_epoch})")
-print(f"Average Grad Norm:  {avg_grad:.4f}")
-print(f"Grad Stability (SD):{grad_stability:.4f}")
-
-# Quick trend check
-if final_loss < epoch_losses[0] * 0.1:
-    print("✅ Model converged strongly — large loss reduction.")
-elif final_loss < epoch_losses[0] * 0.5:
-    print("⚙️  Model improved moderately — may benefit from more epochs or LR tuning.")
-else:
-    print("⚠️  Minimal improvement — check learning rate, data scaling, or model capacity.")
-
-# Evaluate final performance
+# ------------------------
+# Evaluation
+# ------------------------
 emg_model.eval()
 with torch.no_grad():
-    preds = emg_model(X)
+    preds = emg_model(X_test)
+    preds_binary = (preds > 0.5).float()
 
-# Error metrics
-mse_per_output = torch.mean((preds - y) ** 2, dim=0)
-mae_per_output = torch.mean(torch.abs(preds - y), dim=0)
+# Compute confusion matrix elements
+TP = ((preds_binary == 1) & (y_test == 1)).sum().item()
+TN = ((preds_binary == 0) & (y_test == 0)).sum().item()
+FP = ((preds_binary == 1) & (y_test == 0)).sum().item()
+FN = ((preds_binary == 0) & (y_test == 1)).sum().item()
 
-print("\n=== PER-OUTPUT METRICS ===")
-for i, col in enumerate(y.shape[1] if hasattr(y, 'columns') else range(y.shape[1])):
-    print(f"Output {i:02d}: MSE={mse_per_output[i]:.6f} | MAE={mae_per_output[i]:.6f}")
+# Derived metrics
+accuracy = (TP + TN) / (TP + TN + FP + FN + 1e-8)
+precision = TP / (TP + FP + 1e-8)
+recall = TP / (TP + FN + 1e-8)
+f1 = 2 * (precision * recall) / (precision + recall + 1e-8)
 
-# Aggregate stats
-overall_mse = torch.mean(mse_per_output).item()
-overall_mae = torch.mean(mae_per_output).item()
-print(f"\nOverall MSE: {overall_mse:.6f} | Overall MAE: {overall_mae:.6f}")
-
-# Random sample check
-idx = np.random.randint(0, len(X))
-print("\nSample prediction vs target:")
-print(f"Pred: {preds[idx].numpy().round(3)}")
-print(f"True: {y[idx].numpy().round(3)}")
+print("\n=== TEST SET PERFORMANCE ===")
+print(f"True Positives:  {TP}")
+print(f"True Negatives:  {TN}")
+print(f"False Positives: {FP}")
+print(f"False Negatives: {FN}")
+print(f"Accuracy:  {accuracy:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"Recall:    {recall:.4f}")
+print(f"F1 Score:  {f1:.4f}")
