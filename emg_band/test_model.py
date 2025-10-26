@@ -15,15 +15,15 @@ class EMG_NN(nn.Module):
                     nn.Linear(input_size, 128),
                     nn.BatchNorm1d(128),
                     nn.GELU(),
-                    nn.Dropout(0.1),
+                    nn.Dropout(0.05),
 
                     nn.Linear(128, 256),
                     nn.GELU(),
-                    nn.Dropout(0.1),
+                    nn.Dropout(0.05),
 
                     nn.Linear(256, 64),
                     nn.GELU(),
-                    nn.Dropout(0.1),
+                    nn.Dropout(0.05),
 
                     nn.Linear(64, output_size)
                 )
