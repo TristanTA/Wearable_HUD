@@ -12,14 +12,27 @@ class EMG_NN(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(input_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, output_size),
-            nn.Sigmoid()  # for binary-like output
-        )
+                    nn.Linear(input_size, 128),
+                    nn.BatchNorm1d(128),
+                    nn.GELU(),
+                    nn.Dropout(0.1),
+
+                    nn.Linear(128, 256),
+                    nn.GELU(),
+                    nn.Dropout(0.1),
+
+                    nn.Linear(256, 64),
+                    nn.GELU(),
+                    nn.Dropout(0.1),
+
+                    nn.Linear(64, output_size)
+                )
+
+        self.output_activation = nn.Sigmoid()
 
     def forward(self, x):
-        return self.net(x)
+        x = self.net(x)
+        return self.output_activation(x)
 
 # ------------------------
 # Data Loading & Cleaning
@@ -69,12 +82,16 @@ y_test = torch.tensor(y_test.values, dtype=torch.float32)
 # ------------------------
 emg_model = EMG_NN(input_size=X.shape[1], hidden_size=64, output_size=y.shape[1])
 criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(emg_model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(
+    emg_model.parameters(),
+    lr=0.001,
+    weight_decay=1e-5
+)
 
 # ------------------------
 # Training Loop
 # ------------------------
-EPOCHS = 1000
+EPOCHS = 30000
 for epoch in range(EPOCHS):
     outputs = emg_model(X_train)
     loss = criterion(outputs, y_train)
