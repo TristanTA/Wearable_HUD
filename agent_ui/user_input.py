@@ -1,0 +1,1 @@
+USER_INPUT = "Hey, will you make me a widget for my current heart rate?"
