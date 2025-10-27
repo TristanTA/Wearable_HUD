@@ -2,6 +2,7 @@ from pynput import keyboard, mouse
 import time
 import math
 import csv
+import threading
 
 class InputTracker:
     def __init__(self, log_interval: float = 0.1):
@@ -20,7 +21,8 @@ class InputTracker:
         self.file_name = "emg_data.csv"
         self.log_interval = log_interval  # seconds (e.g., 0.1 = 10 Hz)
 
-        # Write CSV header
+        self.running: bool = False
+
         with open(self.file_name, "w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([
@@ -110,16 +112,25 @@ class InputTracker:
             writer = csv.writer(file)
             writer.writerow(self.get_package())
 
-# --- Run trackers ---
-tracker = InputTracker(log_interval=0.1)  # 10 Hz logging rate
+    def start(self):
+        """Start tracking in a background thread."""
+        self.running = True
+        self.mouse_listener = mouse.Listener(on_move=self.on_move, on_click=self.on_click, on_scroll=self.on_scroll)
+        self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        self.mouse_listener.start()
+        self.keyboard_listener.start()
 
-with mouse.Listener(
-    on_move=tracker.on_move,
-    on_click=tracker.on_click,
-    on_scroll=tracker.on_scroll
-) as m_listener, keyboard.Listener(
-    on_press=tracker.on_press,
-    on_release=tracker.on_release
-) as k_listener:
-    m_listener.join()
-    k_listener.join()
+        self.thread = threading.Thread(target=self.loop, daemon=True)
+        self.thread.start()
+
+    def stop(self):
+        """Stop tracking and close listeners."""
+        self.running = False
+        self.mouse_listener.stop()
+        self.keyboard_listener.stop()
+
+    def loop(self):
+        """Periodic logging loop."""
+        while self.running:
+            self.store()
+            time.sleep(self.log_interval)

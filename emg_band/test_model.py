@@ -64,8 +64,8 @@ data = data.apply(pd.to_numeric, errors="coerce").fillna(0)
 # ------------------------
 # Feature / Target split
 # ------------------------
-X = data[["timestamp","mouse_x","mouse_y","mouse_velocity","scroll_velocity","mouse1","mouse2","mouse3","pressed_keys"]]
-y = data[["ref_voltage","ch1_voltage","ch2_voltage","ch3_voltage"]]
+X = data[["ref_voltage","ch1_voltage","ch2_voltage","ch3_voltage"]]
+y = data[["timestamp","mouse_x","mouse_y","mouse_velocity","scroll_velocity","mouse1","mouse2","mouse3","pressed_keys"]]
 
 # Binarize outputs (since we want classification metrics)
 y = (y > y.median()).astype(int)
@@ -91,7 +91,7 @@ optimizer = torch.optim.Adam(
 # ------------------------
 # Training Loop
 # ------------------------
-EPOCHS = 30000
+EPOCHS = 3000
 for epoch in range(EPOCHS):
     outputs = emg_model(X_train)
     loss = criterion(outputs, y_train)

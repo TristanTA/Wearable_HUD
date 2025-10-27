@@ -3,49 +3,126 @@
     padding: 30
     spacing: 20
 
-    # ---------- TITLE ----------
-    Label:
-        text: "EMG Band Wizard"
-        font_size: "32sp"
-        bold: True
-        size_hint_y: None
-        height: self.texture_size[1] + 20
-
-    # ---------- Spacer to push buttons downward ----------
-    Widget:
-        size_hint_y: 1.0  # Adjust this to move buttons lower
-
-    # ---------- BUTTON SECTION ----------
-    BoxLayout:
-        orientation: "vertical"
-        spacing: 25
-        size_hint_y: 0.5
-        padding: 40, 0
-
-        # Upload Weights button + label
-        BoxLayout:
-            orientation: "vertical"
-            spacing: 10
-            Button:
-                text: "Upload trained model weights to use for signal decoding"
-                font_size: "20sp"
-                size_hint_y: None
-                height: 60
-
-        # Train Mouse button + label
-        BoxLayout:
-            orientation: "vertical"
-            spacing: 10
-            Button:
-                text: "Train new movement patterns with fresh EMG data"
-                font_size: "20sp"
-                size_hint_y: None
-                height: 60
-
-    # ---------- Spacer to pad bottom ----------
-    Widget:
-        size_hint_y: 0.2
-
-    # ---------- Hidden ScreenManager (for later navigation) ----------
     ScreenManager:
         id: screen_manager
+
+        # ---------- HOME SCREEN ----------
+        Screen:
+            name: "home"
+            BoxLayout:
+                orientation: "vertical"
+                spacing: 20
+                padding: 30
+
+                Label:
+                    text: "EMG Band Wizard"
+                    font_size: "32sp"
+                    bold: True
+                    size_hint_y: None
+                    height: self.texture_size[1] + 20
+
+                Widget:
+                    size_hint_y: 1.0
+
+                BoxLayout:
+                    orientation: "vertical"
+                    spacing: 25
+                    size_hint_y: 0.5
+                    padding: 40, 0
+
+                    Button:
+                        text: "Upload trained model weights to use for signal decoding"
+                        font_size: "20sp"
+                        size_hint_y: None
+                        height: 60
+                        on_press: app.root.ids.screen_manager.current = "upload"
+
+                    Button:
+                        text: "Train new movement patterns with fresh EMG data"
+                        font_size: "20sp"
+                        size_hint_y: None
+                        height: 60
+                        on_press: app.root.ids.screen_manager.current = "train"
+
+                Widget:
+                    size_hint_y: 0.2
+
+        # ---------- UPLOAD SCREEN ----------
+        Screen:
+            name: "upload"
+            BoxLayout:
+                orientation: "vertical"
+                padding: 30
+                spacing: 20
+                Label:
+                    text: "Upload Weights Screen"
+                    font_size: "24sp"
+                Button:
+                    text: "Back"
+                    size_hint_y: None
+                    height: 50
+                    on_press: app.root.ids.screen_manager.current = "home"
+
+        # ---------- TRAIN SCREEN ----------
+        Screen:
+            name: "train"
+            BoxLayout:
+                orientation: "vertical"
+                padding: 30
+                spacing: 20
+                Label:
+                    text: "Train Mouse Screen"
+                    font_size: "24sp"
+
+                Button:
+                    text: "Start Training"
+                    size_hint_y: None
+                    height: 50
+                    on_press: app.run_tracker(), app.display_tracker()
+
+                Button:
+                    text: "Stop Training"
+                    size_hint_y: None
+                    height: 50
+                    on_press: app.stop_tracker()
+
+                Label:
+                    id: "mouse_coord"
+                    text: "Mouse Position: (0, 0)"
+                    font_size: "24sp"
+
+                Label:
+                    id: "mouse_button1_status"
+                    text: "Button 1: False"
+                    font_size: "24sp"
+
+                Label:
+                    id: "mouse_button2_status"
+                    text: "Button 2: False"
+                    font_size: "24sp"
+                
+                Label:
+                    id: "mouse_button3_status"
+                    text: "Button 3: False"
+                    font_size: "24sp"
+
+                Label:
+                    id: "mouse_velocity"
+                    text: "Mouse Velocity: 0"
+                    font_size: "24sp"
+
+                Label:
+                    id: "scroll_velocity"
+                    text: "Scroll Velocity: 0"
+                    font_size: "24sp"
+
+                Label:
+                    id: "pressed_keys"
+                    text: "Pressed Keys: []"
+                    font_size: "24sp"
+
+                Button:
+                    text: "Back"
+                    size_hint_y: None
+                    height: 50
+                    on_press: app.root.ids.screen_manager.current = "home"
