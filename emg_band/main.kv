@@ -1,0 +1,51 @@
+<EMGLayout>:
+    orientation: "vertical"
+    padding: 30
+    spacing: 20
+
+    # ---------- TITLE ----------
+    Label:
+        text: "EMG Band Wizard"
+        font_size: "32sp"
+        bold: True
+        size_hint_y: None
+        height: self.texture_size[1] + 20
+
+    # ---------- Spacer to push buttons downward ----------
+    Widget:
+        size_hint_y: 1.0  # Adjust this to move buttons lower
+
+    # ---------- BUTTON SECTION ----------
+    BoxLayout:
+        orientation: "vertical"
+        spacing: 25
+        size_hint_y: 0.5
+        padding: 40, 0
+
+        # Upload Weights button + label
+        BoxLayout:
+            orientation: "vertical"
+            spacing: 10
+            Button:
+                text: "Upload trained model weights to use for signal decoding"
+                font_size: "20sp"
+                size_hint_y: None
+                height: 60
+
+        # Train Mouse button + label
+        BoxLayout:
+            orientation: "vertical"
+            spacing: 10
+            Button:
+                text: "Train new movement patterns with fresh EMG data"
+                font_size: "20sp"
+                size_hint_y: None
+                height: 60
+
+    # ---------- Spacer to pad bottom ----------
+    Widget:
+        size_hint_y: 0.2
+
+    # ---------- Hidden ScreenManager (for later navigation) ----------
+    ScreenManager:
+        id: screen_manager
