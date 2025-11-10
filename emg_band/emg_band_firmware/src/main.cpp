@@ -13,10 +13,11 @@
 #include <TensorFlowLite_ESP32.h>
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/micro_allocator.h"
+#include "tensorflow/lite/micro/micro_error_reporter.h"
+#include "tensorflow/lite/micro/micro_profiler.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/version.h"
-
-
 
 // ----------------- Hardware Config -----------------
 #ifndef LED_BUILTIN
@@ -36,8 +37,13 @@ NimBLECharacteristic* pCharacteristic;
 bool deviceConnected = false;
 
 class ServerCallbacks : public NimBLEServerCallbacks {
-  void onConnect(NimBLEServer*) override   { deviceConnected = true; }
-  void onDisconnect(NimBLEServer*) override{ deviceConnected = false; }
+  void onConnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) {
+    deviceConnected = true;
+  }
+
+  void onDisconnect(NimBLEServer* pServer) {
+    deviceConnected = false;
+  }
 };
 
 // ----------------- TFLM Globals -----------------
@@ -113,7 +119,7 @@ unsigned long lastBattery = 0;
 const uint32_t periodMs = 5; // ~200 Hz
 
 void loop() {
-  if (Serial.available())    receiveModelFile(Serial, "usb_model.tflite");
+  if (Serial.available()) receiveModelFile(Serial, "usb_model.tflite");
   if (millis() - lastBattery > 5000) {
     reportBattery();
     lastBattery = millis();
@@ -169,7 +175,8 @@ void loadModelFromSPIFFS(const char* path) {
     modelReady = false;
     return;
   }
-  if (g_model_buf) { free(g_model_buf); }
+
+  if (g_model_buf) free(g_model_buf);
   g_model_size = f.size();
   g_model_buf = (uint8_t*)malloc(g_model_size);
   if (!g_model_buf) {
@@ -178,6 +185,7 @@ void loadModelFromSPIFFS(const char* path) {
     modelReady = false;
     return;
   }
+
   f.read(g_model_buf, g_model_size);
   f.close();
 
@@ -187,9 +195,21 @@ void loadModelFromSPIFFS(const char* path) {
     modelReady = false;
     return;
   }
+  
+  tflite::MicroResourceVariables* resource_variables = nullptr;
+  tflite::MicroProfiler* profiler = nullptr;
 
-  static tflite::MicroInterpreter static_interpreter(g_model, g_resolver, tensor_arena, kTensorArenaSize);
+  static tflite::MicroInterpreter static_interpreter(
+    g_model,
+    g_resolver,
+    tensor_arena,
+    kTensorArenaSize,
+    nullptr,   // ErrorReporter (MicroErrorReporter not available here)
+    nullptr,   // Resource variables
+    nullptr);  // Profiler
+
   g_interpreter = &static_interpreter;
+
   if (g_interpreter->AllocateTensors() != kTfLiteOk) {
     Serial.println("AllocateTensors failed");
     modelReady = false;
